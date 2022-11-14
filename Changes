@@ -1,0 +1,40 @@
+AP
+#File Related Configuration  
+spring.jackson.serialization.fail-on-empty-beans=false
+spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=10MB
+project.images=photos/
+Control
+@Value("${project.images}")
+	private String path;
+	
+	@PostMapping("/upload")
+	public ResponseEntity<?> fileUpload(@RequestParam ("image") MultipartFile image){
+		String fileName = this.employeeServiceInterface.uploadPhoto(path, image);
+		return 
+	}
+  
+  Service   	String uploadPhoto(String path,MultipartFile file);
+  @Override
+	public String uploadPhoto(String path, MultipartFile file) {
+		//File name
+		String fileName= file.getOriginalFilename();
+		
+		//Full path
+		String filePath= path + File.separator + fileName;
+		
+		//Create folder
+		File f = new File(path);
+		if (!f.exists()) {
+			f.mkdir();
+		}
+	
+		//file copy
+		try {
+			Files.copy(file.getInputStream(), Paths.get(filePath));
+		} catch (IOException e) {
+			new BusinessException("Upload photo", "Failed to copy");
+		}
+		
+		return fileName ;
+	}
