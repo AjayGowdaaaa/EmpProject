@@ -38,3 +38,80 @@ Control
 		
 		return fileName ;
 	}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+SERVICE
+@Override
+		public String uploadPhoto(String path, MultipartFile file,Long empId) {
+		 
+		 Employee emp = employeeRepository.getById(empId);
+		 
+		 
+			//File name
+			String fileName= emp.getESTUATE_ID()+"_"+emp.getFirstName();
+			
+			//Full path
+			String filePath= path + File.separator + fileName;
+			
+			//Setting path 
+			emp.setPhotoPath(filePath);
+			//Setting photo name
+			emp.setPhotoName(fileName);
+			//setting photo
+			try {
+				emp.setPhoto(file.getBytes());
+			} catch (IOException e1) {
+				new BusinessException("Failed to add photo to Database ", "Error occured in Upload photo , setPhoto ");
+				e1.printStackTrace();
+			}
+			//Create folder
+			File f = new File(path);
+			if (!f.exists()) {
+				f.mkdir();
+			}
+		
+			//file copy
+			try {
+				Files.copy(file.getInputStream(), Paths.get(filePath));
+			} catch (IOException e) {
+				new BusinessException(" ", "Failed to copy");
+			}
+			employeeRepository.save(emp);
+			return fileName ;
+		}
+
+	@Override
+	public InputStream getResource(String path, String fileName) {
+		String fullPath= path+File.separator+fileName;
+		InputStream is=null;
+		try {
+			//DataBase logic to return inputstream
+			is = new FileInputStream(fullPath);
+			
+		
+		} catch (FileNotFoundException e) {
+			
+			
+			e.printStackTrace();
+		}
+		return is;
+	}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+Controller
+@Value("${project.images}")
+	private String path ;
+	//= "C:\\Users\\2197942\\Downloads\\AjayEmployeeManagementSystem 14Monday\\AjayEmployeeManagementSystem\\images\\bin";
+	
+	@PostMapping("/upload")
+	public ResponseEntity<?> fileUpload(@RequestParam ("image") MultipartFile image , Long empId){
+		String fileName = this.employeeServiceInterface.uploadPhoto(path, image,empId);
+		
+		return new ResponseEntity<>(new FileResponse(fileName, "Image Uploaded") , HttpStatus.CREATED);
+	}
+	//Method to serve file
+	@GetMapping(value ="/getImages/{imageName}" , produces = MediaType.IMAGE_JPEG_VALUE )
+	
+	public void downloadImage(@PathVariable("imageName") String imageName, HttpServletResponse response ) throws IOException {
+	InputStream resource =	this.employeeServiceInterface.getResource(path, imageName);
+	response.setContentType(MediaType.IMAGE_JPEG_VALUE);
+		StreamUtils.copy(resource, response.getOutputStream());
+	}
